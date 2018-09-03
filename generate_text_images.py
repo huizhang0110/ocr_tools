@@ -586,13 +586,17 @@ if __name__ == "__main__":
     tags_file = args.tags_file
 
     if not os.path.exists(gen_images_dir):
-        os.mkdir(gen_images_dir)
+        os.makedirs(gen_images_dir)
     image_id = 1
     word_list = list()
 
     def read_words_file(words_file):
         with codecs.open(words_file, 'r', encoding='utf-8') as the_file:
-            lines = the_file.readlines()
+            if words_file.endswith("tags"):
+                lines = [line.split(" ", 1)[-1] for line in the_file.readlines()]
+            else:
+                lines = the_file.readlines()
+
             for line in lines:
                 line = line.strip()
                 if len(line) > 0:
