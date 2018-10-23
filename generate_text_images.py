@@ -20,7 +20,7 @@ font_dir = 'fonts'
 font_cache = os.path.join(font_dir, "fonts.pkl")
 
 font_un = ['Kaiti.ttf', 'SimSun.ttf', 'SimHei.ttf', 'PMingLiU.ttf']
-pictures = os.listdir('pictures')
+# pictures = os.listdir('pictures')
 
 def add_salt_pepper(img, fill=(255, 255, 255), num_ratio=None):
     """
@@ -339,9 +339,7 @@ def paint_text(text, size=None, font_size=None, shift=False, rotate=False, multi
 
     font = get_font(text, font_size, font_name, multi_fonts)
 
-    # offset_x, offset_y = font.getoffset(text)
-    offset_x = 0
-    offset_y = 0 #font.getmetrics()[1]
+    offset_x, offset_y = font.getoffset(text)
     text_w, text_h = font.getsize(text)
     if text_w == 0 or text_h == 0:
         return None
@@ -358,10 +356,10 @@ def paint_text(text, size=None, font_size=None, shift=False, rotate=False, multi
     if shift:
         max_shift = max(0, min(5, (w - text_w) // 2, (h - text_h) // 2))
         x = (w - text_w) // 2 + np.random.randint(-max_shift, max_shift+1)
-        y = (h - text_h) // 2 + np.random.randint(-max_shift, max_shift+1)
+        y = (h - text_h) // 2 + np.random.randint(-max_shift, max_shift+1) - offset_y // 2
     else:
-        x = (w - text_w) // 2
-        y = (h - text_h) // 2
+        x = (w - text_w) // 2 
+        y = (h - text_h) // 2 - offset_y // 2
     if random_color:
         if np.random.randint(0, 100) < 70:
             if np.random.randint(0, 100) > 50:
@@ -388,6 +386,7 @@ def paint_text(text, size=None, font_size=None, shift=False, rotate=False, multi
         bg_color = 255
         text_color = 0
     image = Image.new('L', (w, h), color=bg_color)
+    (image_w, image_h) = image.size
     # image = Image.new('RGB', (w, h), color=(bg_color_r, bg_color_g, bg_color_b))
     draw = ImageDraw.Draw(image)
     # 干扰线
@@ -411,7 +410,8 @@ def paint_text(text, size=None, font_size=None, shift=False, rotate=False, multi
         line_width = np.random.randint(image.height/2, image.height)
         fill_color = (text_color + 80)%255
         draw.line([(x1, y1), (x2, y2)], fill=fill_color, width=line_width)
-    draw.text((x - offset_x, y - offset_y), text, font=font, fill=text_color)
+
+    draw.text((x, y), text, font=font, fill=text_color)
     # 加入白色的椒盐噪声
     if np.random.randint(0, 100) < 0:
         add_salt_pepper(image)
@@ -433,19 +433,19 @@ def paint_text(text, size=None, font_size=None, shift=False, rotate=False, multi
             if font_size > 20:
                 image = hyperdither(image)
     #加入背景图片
-    if np.random.randint(0, 100) < 0:
-        assert len(pictures) > 0,"no picture!"
-        picture = Image.open('pictures/' + pictures[random.randint(0, len(pictures) - 1)])
-        if picture.size[0] < w:
-            picture = picture.resize([w, int(picture.size[1] * (w / picture.size[0]))], Image.ANTIALIAS)
-        elif picture.size[1] < h:
-            picture.resize([int(picture.size[0] * (h / picture.size[1])), h], Image.ANTIALIAS)
-        x = random.randint(0, picture.size[0] - w)
-        y = random.randint(0, picture.size[1] - h)
-        background_pic = picture.crop((x,y,x + w,y + h))
-        mask = image.point(lambda x: 0 if x == 255 or x == 0 else 255, '1')
-        background_pic.paste(image, (0, 0), mask=mask)
-        image = background_pic
+#     if np.random.randint(0, 100) < 0:
+        # assert len(pictures) > 0,"no picture!"
+        # picture = Image.open('pictures/' + pictures[random.randint(0, len(pictures) - 1)])
+        # if picture.size[0] < w:
+            # picture = picture.resize([w, int(picture.size[1] * (w / picture.size[0]))], Image.ANTIALIAS)
+        # elif picture.size[1] < h:
+            # picture.resize([int(picture.size[0] * (h / picture.size[1])), h], Image.ANTIALIAS)
+        # x = random.randint(0, picture.size[0] - w)
+        # y = random.randint(0, picture.size[1] - h)
+        # background_pic = picture.crop((x,y,x + w,y + h))
+        # mask = image.point(lambda x: 0 if x == 255 or x == 0 else 255, '1')
+        # background_pic.paste(image, (0, 0), mask=mask)
+#         image = background_pic
     if rotate:
         if np.random.randint(0, 100) < 20:
             angle = np.random.randint(-2, 3)
@@ -575,7 +575,7 @@ def test_paint_text():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--word_list_file", type=str, help="")
+    parser.add_argument("--word_list_file", type=str, help="", default="./word.txt")
     parser.add_argument("--tags_file", type=str, default="output.tags", help="")
     parser.add_argument("--save_dir", type=str, default="output", help="")
     parser.add_argument("--epoch", type=int, default=3, help="")
